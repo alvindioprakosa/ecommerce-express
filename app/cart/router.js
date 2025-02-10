@@ -9,6 +9,5 @@ const cartController = require('./controller');
 router.put('/carts', multer().none(), cartController.update);
 router.get('/carts', cartController.index);
 
-
 // (4) export router
 module.exports = router;

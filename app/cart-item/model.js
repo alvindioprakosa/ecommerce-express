@@ -5,7 +5,7 @@ const cartItemSchema = Schema({
 
   name: {
     type: String, 
-    minlength: [5, 'Panjang nama makanan minimal 50 karakter'],
+    minlength: [5, 'The minimum length of the food name is 50 characters'],
     required: [true, 'name must be filled']
   },
 
