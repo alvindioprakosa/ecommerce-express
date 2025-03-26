@@ -1,40 +1,78 @@
 const Tag = require('./model');
 const { policyFor } = require('../policy');
 
-async function store(req, res, next){
-
-
-  try{
-
+async function store(req, res, next) {
+  try {
     let policy = policyFor(req.user);
 
-    if(!policy.can('create', 'Tag')){ // <-- can create Tag
-       return res.json({
-          error: 1, 
-          message: `Anda tidak memiliki akses untuk membuat tag`
+    if (!policy.can('create', 'Tag')) {
+      return res.status(403).json({
+        error: 1,
+        message: 'Anda tidak memiliki akses untuk membuat tag',
       });
     }
 
-    // (1) dapatkan data dari request yang dikirimkan client
+    let payload = req.body;
+    let tag = new Tag(payload);
+
+    await tag.save();
+    return res.status(201).json(tag);
+  } catch (err) {
+    if (err.name === 'ValidationError') {
+      return res.status(400).json({
+        error: 1,
+        message: err.message,
+        fields: err.errors,
+      });
+    }
+    next(err);
+  }
+}
+
+async function update(req, res, next) {
+  try {
+    let policy = policyFor(req.user);
+
+    if (!policy.can('update', 'Tag')) {
+      return res.status(403).json({
+        error: 1,
+        message: 'Anda tidak memiliki akses untuk mengupdate tag',
+      });
+    }
+
     let payload = req.body;
 
-    // (2) buat objek Tag baru berdasarkan payload
-    let tag = new Tag(payload)
+    if (!Object.keys(payload).length) {
+      return res.status(400).json({
+        error: 1,
+        message: 'Payload tidak boleh kosong',
+      });
+    }
 
-    // (3) simpan tag ke MongoDB
-    await tag.save();  
+    let tag = await Tag.findById(req.params.id);
+    if (!tag) {
+      return res.status(404).json({
+        error: 1,
+        message: 'Tag tidak ditemukan',
+      });
+    }
 
-    // (4) respon ke client dengan data tag yang baru saja disimpan
+    tag = await Tag.findByIdAndUpdate(req.params.id, payload, { new: true, runValidators: true });
+
     return res.json(tag);
-  } catch(err) {
+  } catch (err) {
+    if (err.name === 'ValidationError') {
+      return res.status(400).json({
+        error: 1,
+        message: err.message,
+        fields: err.errors,
+      });
+    }
 
-    // (5) tangani kemungkinan error validasi dan error lainnya
-
-    if(err && err.name === 'ValidationError'){
-      return res.json({
-        error: 1, 
-        message: err.message, 
-        fields: err.errors
+    if (err.name === 'CastError') {
+      return res.status(400).json({
+        error: 1,
+        message: 'ID tidak valid',
       });
     }
 
@@ -42,56 +80,39 @@ async function store(req, res, next){
   }
 }
 
-async function update(req, res, next){
-
-  try{
-
+async function destroy(req, res, next) {
+  try {
     let policy = policyFor(req.user);
 
-    if(!policy.can('update', 'Tag')){ // <-- can update Tag
-       return res.json({
-          error: 1, 
-          message: `Anda tidak memiliki akses untuk mengupdate tag`
+    if (!policy.can('delete', 'Tag')) {
+      return res.status(403).json({
+        error: 1,
+        message: 'Anda tidak memiliki akses untuk menghapus tag',
       });
     }
 
-    let payload = req.body;
-
-    let tag = await Tag.findOneAndUpdate({_id: req.params.id}, payload, {new: true, runValidators: true});
-
-    return res.json(tag);
-  } catch(err) {
-
-    if(err && err.name === 'ValidationError'){
-      return res.json({
-        error: 1, 
-        message: err.message, 
-        fields: err.errors
+    let tag = await Tag.findById(req.params.id);
+    if (!tag) {
+      return res.status(404).json({
+        error: 1,
+        message: 'Tag tidak ditemukan',
       });
     }
 
-    next(err);
-  }
-}
+    await Tag.findByIdAndDelete(req.params.id);
 
-async function destroy(req, res, next){
-
-  try{
-
-    let policy = policyFor(req.user);
-
-    if(!policy.can('delete', 'Tag')){ // <-- can delete Tag
-       return res.json({
-          error: 1, 
-          message: `Anda tidak memiliki akses untuk menghapus tag`
+    return res.json({
+      success: 1,
+      message: 'Tag berhasil dihapus',
+    });
+  } catch (err) {
+    if (err.name === 'CastError') {
+      return res.status(400).json({
+        error: 1,
+        message: 'ID tidak valid',
       });
     }
 
-    let tag = await Tag.findOneAndDelete({_id: req.params.id});  
-
-    return res.json(tag); // <--- 
-
-  } catch(err) {
     next(err);
   }
 }
@@ -99,5 +120,5 @@ async function destroy(req, res, next){
 module.exports = {
   store,
   update,
-  destroy
-}
+  destroy,
+};
