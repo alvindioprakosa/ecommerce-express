@@ -3,7 +3,7 @@ const { policyFor } = require('../policy');
 
 async function store(req, res, next) {
   try {
-    let policy = policyFor(req.user);
+    const policy = policyFor(req.user);
 
     if (!policy.can('create', 'Tag')) {
       return res.status(403).json({
@@ -12,10 +12,10 @@ async function store(req, res, next) {
       });
     }
 
-    let payload = req.body;
-    let tag = new Tag(payload);
-
+    const payload = req.body;
+    const tag = new Tag(payload);
     await tag.save();
+
     return res.status(201).json(tag);
   } catch (err) {
     if (err.name === 'ValidationError') {
@@ -31,7 +31,7 @@ async function store(req, res, next) {
 
 async function update(req, res, next) {
   try {
-    let policy = policyFor(req.user);
+    const policy = policyFor(req.user);
 
     if (!policy.can('update', 'Tag')) {
       return res.status(403).json({
@@ -40,7 +40,7 @@ async function update(req, res, next) {
       });
     }
 
-    let payload = req.body;
+    const payload = req.body;
 
     if (!Object.keys(payload).length) {
       return res.status(400).json({
@@ -49,7 +49,7 @@ async function update(req, res, next) {
       });
     }
 
-    let tag = await Tag.findById(req.params.id);
+    const tag = await Tag.findById(req.params.id);
     if (!tag) {
       return res.status(404).json({
         error: 1,
@@ -57,9 +57,12 @@ async function update(req, res, next) {
       });
     }
 
-    tag = await Tag.findByIdAndUpdate(req.params.id, payload, { new: true, runValidators: true });
+    const updated = await Tag.findByIdAndUpdate(req.params.id, payload, {
+      new: true,
+      runValidators: true,
+    });
 
-    return res.json(tag);
+    return res.json(updated);
   } catch (err) {
     if (err.name === 'ValidationError') {
       return res.status(400).json({
@@ -82,7 +85,7 @@ async function update(req, res, next) {
 
 async function destroy(req, res, next) {
   try {
-    let policy = policyFor(req.user);
+    const policy = policyFor(req.user);
 
     if (!policy.can('delete', 'Tag')) {
       return res.status(403).json({
@@ -91,7 +94,7 @@ async function destroy(req, res, next) {
       });
     }
 
-    let tag = await Tag.findById(req.params.id);
+    const tag = await Tag.findById(req.params.id);
     if (!tag) {
       return res.status(404).json({
         error: 1,
