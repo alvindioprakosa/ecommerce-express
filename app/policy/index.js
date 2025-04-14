@@ -2,58 +2,47 @@ const { AbilityBuilder, Ability } = require("@casl/ability");
 
 const policies = {
   guest(user, { can }) {
-    can("read", "Product");
+    can("read", "Product");  // Membaca produk
   },
 
   user(user, { can }) {
-    // membaca daftar `Order`
-    can("view", "Order");
+    // Akses ke Order
+    can("view", "Order"); // melihat daftar order
+    can("create", "Order"); // membuat order
+    can("read", "Order", { user_id: user._id }); // membaca order miliknya
 
-    // membuat `Order`
-    can("create", "Order");
+    // Akses ke User
+    can("update", "User", { _id: user._id }); // mengupdate data dirinya sendiri
 
-    // membaca `Order` miliknya
-    can("read", "Order", { user_id: user._id });
+    // Akses ke Cart
+    can("read", "Cart", { user_id: user._id }); // membaca cart miliknya
+    can("update", "Cart", { user_id: user._id }); // mengupdate cart miliknya
 
-    // mengupdate data dirinya sendiri (`User`)
-    can("update", "User", { _id: user._id });
+    // Akses ke Delivery Address
+    can("view", "DeliveryAddress"); // melihat daftar alamat
+    can("create", "DeliveryAddress", { user_id: user._id }); // membuat alamat pengiriman
+    can("read", "DeliveryAddress", { user_id: user._id }); // membaca alamat miliknya
+    can("update", "DeliveryAddress", { user_id: user._id }); // mengupdate alamat miliknya
+    can("delete", "DeliveryAddress", { user_id: user._id }); // menghapus alamat miliknya
 
-    // membaca `Cart` miliknya
-    can("read", "Cart", { user_id: user._id });
-
-    // mengupdate `Cart` miliknya
-    can("update", "Cart", { user_id: user._id });
-
-    // melihat daftar `DeliveryAddress`
-    can("view", "DeliveryAddress");
-
-    // membuat `DeliveryAddress`
-    can("create", "DeliveryAddress", { user_id: user._id });
-
-    // membaca `DeliveryAddress` miliknya
-    can("read", "DeliveryAddress", { user_id: user._id });
-
-    // mengupdate `DeliveryAddress` miliknya
-    can("update", "DeliveryAddress", { user_id: user._id });
-
-    // menghapus `DeliveryAddress` miliknya
-    can("delete", "DeliveryAddress", { user_id: user._id });
-
-    // membaca `Invoice` miliknya
-    can("read", "Invoice", { user_id: user._id });
+    // Akses ke Invoice
+    can("read", "Invoice", { user_id: user._id }); // membaca invoice miliknya
   },
 
   admin(user, { can }) {
-    can("manage", "all"); // Memberikan akses penuh ke semua resource
+    can("manage", "all"); // memberikan akses penuh
   }
 };
 
+// Modifikasi fungsi policyFor untuk menangani peran dan logika otorisasi
 function policyFor(user) {
   const { can, cannot, rules } = new AbilityBuilder(Ability);
 
-  if (user && typeof policies[user.role] === "function") {
+  // Cek peran pengguna dan tentukan kebijakan akses yang berlaku
+  if (user && policies[user.role]) {
     policies[user.role](user, { can, cannot });
   } else {
+    // Default ke guest jika tidak ada peran yang ditemukan
     policies["guest"](user, { can, cannot });
   }
 
