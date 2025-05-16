@@ -3,43 +3,42 @@ const config = require('../config');
 const User = require('../user/model');
 const jwt = require('jsonwebtoken');
 
-function decodeToken(){
-   return async function(req, res, next){
-     try{
+function decodeToken() {
+  return async function (req, res, next) {
+    const token = getToken(req);
 
-       let token = getToken(req);     
+    if (!token) {
+      return next();
+    }
 
-       if(!token) return next(); 
- 
-       req.user = jwt.verify(token, config.secretKey); 
+    try {
+      // Verifikasi dan decode token
+      const decoded = jwt.verify(token, config.secretKey);
+      req.user = decoded;
 
-       let user = await User.findOne({token: {$in: [token]}});
+      // Cek apakah token masih tersimpan di database (valid session)
+      const user = await User.findOne({ token: { $in: [token] } });
+      if (!user) {
+        return res.status(401).json({
+          error: 1,
+          message: 'Token tidak ditemukan di database (expired atau logout)'
+        });
+      }
 
-       if(!user){
-          return res.json({
-            error: 1,
-            message: `Token expired`
-          });
-       }
-     }
-     catch (err) {
-       
-       if(err && err.name === 'JsonWebTokenError'){
-         return res.json({
-            error: 1,
-            message: err.message
-         });
-       }
+      return next();
+    } catch (err) {
+      if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
+        return res.status(401).json({
+          error: 1,
+          message: err.message
+        });
+      }
 
-			 console.log('TEST', err.name)
-
-       next(err);
-     } 
-
-     return next(); // <--
-   }
+      return next(err);
+    }
+  };
 }
 
 module.exports = {
   decodeToken
-}
+};
