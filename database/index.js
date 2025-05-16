@@ -1,19 +1,21 @@
-// (1) import package mongoose
 const mongoose = require('mongoose');
-
-// (2) kita import konfigurasi terkait MongoDB dari `app/config.js`
 const { dbHost, dbName, dbPort, dbUser, dbPass } = require('../app/config');
 
-// (3) connect ke MongoDB menggunakan konfigurasi yang telah kita import 
-mongoose
-  .connect(`mongodb://${dbUser}:${dbPass}@${dbHost}:${dbPort}/${dbName}?authSource=admin`, 
-    {useNewUrlParser: true, useUnifiedTopology: true, useFindAndModify: false, useCreateIndex: true});
+// Build MongoDB URI
+const uri = `mongodb://${dbUser}:${dbPass}@${dbHost}:${dbPort}/${dbName}?authSource=admin`;
 
+// Connect to MongoDB
+mongoose.connect(uri, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
 
-// (4) simpan koneksi dalam constant `db`
-const db =
-  mongoose.connection;
+// Handle connection
+const db = mongoose.connection;
 
-// (5) export `db` supaya bisa digunakan oleh file lain yang membutuhkan
+db.on('error', console.error.bind(console, 'MongoDB connection error:'));
+db.once('open', () => {
+  console.log('MongoDB connected successfully');
+});
+
 module.exports = db;
-
